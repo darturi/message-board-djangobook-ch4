@@ -11,10 +11,13 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from environs import Env  # imported so we can work w/ env variables
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = Env()  # create Env object
+env.read_env()  # read from Env object
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -25,8 +28,12 @@ SECRET_KEY = "django-insecure-*jzmo=4pri(id3atesh5(k_ohu0t4fy_4o=6##3ag+ufv-nzr3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
+
+# Adding a line that defines a list of trsuted origins for unsafe http
+# requests to the site
+CSRF_TRUSTED_ORIGINS = ["https://*.fly.dev"]
 
 # Application definition
 
@@ -36,6 +43,9 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    # line to recognize whitenoise, the package that serves static
+    # files to client in production (right below)
+    "whitenoise.runserver_nostatic",
     "django.contrib.staticfiles",
     "posts",
 ]
@@ -43,6 +53,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # updating middleware with whitenoise package (below)
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -76,12 +88,17 @@ WSGI_APPLICATION = "django_project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
+"""DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
     }
-}
+}"""
+
+# This updated setup for the DATABASES variable leverages the environment
+# variables and the dj-database-url package to make it so sqlite3 is used
+# when the web app is locally run and PostgreSQL when in production
+DATABASES = {"default": env.dj_db_url("DATABASE_URL", default="sqlite://db.sqlite3")}
 
 
 # Password validation
